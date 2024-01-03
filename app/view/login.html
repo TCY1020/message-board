@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <h1>用戶： <%= data[0].name%></h1>
+  <ul>
+    <% for(let i=0;i<data.length;i++){ %>
+      <li>
+        <%=data[i].name %>
+      </li>
+      <%}%>
+  </ul>
+  <form action="/login" method="post">
+    <div>
+      <label for="account">Account</label>
+      <input type="text" name="account" id="account">
+    </div>
+    <div>
+      <label for="password">Password</label>
+      <input type="text" name="password" id="password">
+    </div>
+    <button type="submit">Submit</button>
+  </form>
+</body>
+</html>
