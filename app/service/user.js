@@ -1,5 +1,4 @@
 const Service = require('egg').Service;
-const sequelize = require('sequelize');
 const { Message, User } = require('../../models');
 
 class UserService extends Service {
@@ -13,13 +12,27 @@ class UserService extends Service {
   }
 
   async getMessages() {
+    const { ctx } = this;
+    console.log(ctx.session.passport);
     const messages = await Message.findAll({
       include: [{ model: User }],
       raw: true,
       nest: true,
+      order: [[ 'createdAt', 'DESC' ]],
     });
     return messages;
   }
+
+  async postMessage() {
+    const { ctx } = this;
+    const { comment } = ctx.request.body;
+    const { user } = ctx.session.passport;
+    await Message.create({
+      userId: user,
+      comment,
+    });
+  }
+
   async editMessage() {
     const { ctx } = this;
     const { id } = ctx.params;

@@ -8,17 +8,16 @@ class HomeController extends Controller {
     await ctx.render('login', { data });
   }
 
-  async login() {
-    const { ctx } = this;
-    const data = await ctx.request.body;
-    console.log(data);
-    await ctx.redirect('/message');
-  }
-
   async getMessages() {
     const { ctx, service } = this;
     const data = await service.user.getMessages();
     await ctx.render('message', { data });
+  }
+
+  async postMessage() {
+    const { ctx, service } = this;
+    await service.user.postMessage();
+    await ctx.redirect('/message');
   }
 
   async editMessage() {
