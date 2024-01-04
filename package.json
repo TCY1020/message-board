@@ -10,10 +10,12 @@
     "@faker-js/faker": "^8.3.1",
     "bcryptjs": "^2.4.3",
     "egg": "^3.17.5",
+    "egg-passport": "^2.1.1",
     "egg-scripts": "2",
     "egg-sequelize": "^6.0.0",
     "egg-view-ejs": "^3.0.0",
-    "mysql2": "^3.6.5"
+    "mysql2": "^3.6.5",
+    "passport-local": "^1.0.0"
   },
   "devDependencies": {
     "egg-bin": "6",
