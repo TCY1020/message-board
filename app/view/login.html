@@ -6,14 +6,7 @@
   <title>Document</title>
 </head>
 <body>
-  <h1>用戶： <%= data[0].name%></h1>
-  <ul>
-    <% for(let i=0;i<data.length;i++){ %>
-      <li>
-        <%=data[i].name %>
-      </li>
-      <%}%>
-  </ul>
+  <h1>請先登入留言板</h1>
   <form action="/login" method="post">
     <div>
       <label for="account">Account</label>

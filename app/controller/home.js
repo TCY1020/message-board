@@ -2,10 +2,8 @@ const { Controller } = require('egg');
 
 class HomeController extends Controller {
   async index() {
-    const { ctx, service } = this;
-    // ctx.body = 'hi, egg';
-    const data = await service.user.getUsers();
-    await ctx.render('login', { data });
+    const { ctx } = this;
+    await ctx.render('login');
   }
 
   async getMessages() {

@@ -2,18 +2,7 @@ const Service = require('egg').Service;
 const { Message, User } = require('../../models');
 
 class UserService extends Service {
-  async getUsers() {
-    const users = [
-      { name: 'a' },
-      { name: 'b' },
-      { name: 'c' },
-    ];
-    return users;
-  }
-
   async getMessages() {
-    const { ctx } = this;
-    console.log(ctx.session.passport);
     const messages = await Message.findAll({
       include: [{ model: User }],
       raw: true,
@@ -48,7 +37,6 @@ class UserService extends Service {
     const { ctx } = this;
     const { id } = ctx.params;
     const { comment } = ctx.request.body;
-    console.log(comment);
     const message = await Message.findByPk(id);
     if (!message) throw new Error('查無此留言');
     await message.update({
