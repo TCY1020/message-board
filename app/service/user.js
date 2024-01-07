@@ -15,7 +15,7 @@ class UserService extends Service {
   async postMessage() {
     const { ctx } = this;
     const { comment } = ctx.request.body;
-    const { user } = ctx.session.passport;
+    const { user } = ctx.session;
     await Message.create({
       userId: user,
       comment,

@@ -14,7 +14,17 @@ module.exports = appInfo => {
   config.keys = appInfo.name + '_1704218497430_4221';
 
   // add your middleware config here
-  config.middleware = [];
+  config.middleware = [ 'login' ];
+  config.login = {
+    match: '/login',
+  };
+
+  config.session = {
+    key: 'data',
+    maxAge: 24 * 3600 * 1000,
+    httpOnly: true,
+    encrypt: true,
+  };
 
   // add your user config here
   const userConfig = {

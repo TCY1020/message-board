@@ -6,6 +6,11 @@ class HomeController extends Controller {
     await ctx.render('login');
   }
 
+  async login() {
+    const { ctx } = this;
+    await ctx.redirect('/message');
+  }
+
   async getMessages() {
     const { ctx, service } = this;
     const data = await service.user.getMessages();
