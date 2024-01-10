@@ -1,15 +1,15 @@
 <h1> 留言訊息</h1>
 <% for(let i=0; i < data.length; i++){ %>
   <div>
-    <h3> 名字： <%=data[i].User.name%>
+    <h3> 名字： <%=data[i].message.User.name%>
     </h3>
     <p>
-      <%=data[i].comment%>
+      <%=data[i].message.comment%>
     </p>
-    <form style="display: inline-block;" action="/message/<%=data[i].id%>/edit" method="get">
+    <form style="display: inline-block;" action="/message/<%=data[i].index%>/edit" method="get">
       <button type="submit">修改</button>
     </form>
-    <form style="display: inline-block;" action="/message/<%=data[i].id%>/delete" method="post">
+    <form style="display: inline-block;" action="/message/<%=data[i].index%>/delete" method="post">
       <input type="hidden" name="_method" value="delete">
       <button type="submit">刪除</button>
     </form>

@@ -6,7 +6,7 @@ module.exports = app => {
     }
 
     async login() {
-      const { ctx } = this;
+      const { ctx, app} = this;
       await ctx.redirect('/message');
     }
 
@@ -19,7 +19,7 @@ module.exports = app => {
     async postMessage() {
       const { ctx, service } = this;
       await service.user.postMessage();
-      await app.redis.del('data');
+      // await app.redis.del('data');
       await ctx.redirect('/message');
     }
 
@@ -39,7 +39,6 @@ module.exports = app => {
     async deleteMessage() {
       const { ctx, service } = this;
       await service.user.deleteMessage();
-      await app.redis.del('data');
       await ctx.redirect('/message');
     }
   };
