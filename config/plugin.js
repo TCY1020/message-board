@@ -16,4 +16,8 @@ module.exports = {
     enable: true,
     package: 'egg-passport',
   },
+  redis: {
+    enable: true,
+    package: 'egg-redis',
+  },
 };

@@ -15,6 +15,7 @@ module.exports = appInfo => {
 
   // add your middleware config here
   config.middleware = [ 'login' ];
+  // 只有在/login路由執行login的middleware
   config.login = {
     match: '/login',
   };
@@ -54,6 +55,15 @@ module.exports = appInfo => {
       timestamps: true, // 自动写入时间戳 created_at updated_at
       paranoid: true, // 字段生成软删除时间戳 deleted_at
       underscored: true, // 所有驼峰命名格式化
+    },
+  };
+  // redis
+  config.redis = {
+    client: {
+      port: 6379, // Redis port
+      host: '127.0.0.1', // Redis host
+      password: 'auth',
+      db: 0,
     },
   };
 

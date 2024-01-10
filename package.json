@@ -11,6 +11,7 @@
     "bcryptjs": "^2.4.3",
     "egg": "^3.17.5",
     "egg-passport": "^2.1.1",
+    "egg-redis": "^2.5.0",
     "egg-scripts": "2",
     "egg-sequelize": "^6.0.0",
     "egg-view-ejs": "^3.0.0",
