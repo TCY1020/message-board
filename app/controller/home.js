@@ -11,19 +11,9 @@ module.exports = app => {
     }
 
     async getMessages() {
-      const { ctx, service, app } = this;
-      const redisData = await app.redis.lrange('data', 0, -1);
-      if (redisData.length > 0) {
-        console.log('redis有東西');
-        const data = redisData.map(JSON.parse);
-        return await ctx.render('message', { data });
-      }
+      const { ctx, service } = this;
       const data = await service.user.getMessages();
-      data.forEach(async (value, item) => {
-        await app.redis.rpush('data', JSON.stringify(value));
-      });
       await ctx.render('message', { data });
-      console.log('往資料庫查');
     }
 
     async postMessage() {
