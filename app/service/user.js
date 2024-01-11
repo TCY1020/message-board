@@ -35,6 +35,7 @@ module.exports = app => {
         index,
         message: JSON.parse(element),
       }));
+      console.log(messagesFromRedis);
       return messagesFromRedis;
     }
 
@@ -53,51 +54,34 @@ module.exports = app => {
       };
       await app.redis.lpush('data', JSON.stringify(data));
       await app.redis.lpush('update', JSON.stringify(data));
-      setInterval(async () => {
-        const dataLength = await app.redis.llen('update');
-        if (dataLength > 0) {
-          const data = await app.redis.lrange('update', 0, dataLength - 1);
-          const updateFromRedis = data.map((element, index) => ({
-            index,
-            message: JSON.parse(element),
-          }));
-          for (const update of updateFromRedis) {
-            await Message.create({
-              userId: update.message.User.id,
-              comment: update.message.comment,
-            });
-          }
-          await app.redis.del('update');
-        }
-      }, 1000);
-
     }
 
     async editMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
-      const message = await Message.findByPk(id, {
-        include: [{ model: User }],
-        raw: true,
-        nest: true,
-      });
-      if (!message) throw new Error('查無此留言');
-      return message;
+      const redisData = await app.redis.lrange('data', Number(id), Number(id));
+      const messageFromRedis = { index: id, message: JSON.parse(redisData) };
+      return messageFromRedis;
     }
     async putMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
       const { comment } = ctx.request.body;
-      const message = await Message.findByPk(id);
-      if (!message) throw new Error('查無此留言');
-      await message.update({
-        comment,
-      });
+      console.log('修改', id);
+      const redisData = await app.redis.lrange('data', Number(id), Number(id));
+      const messageFromRedis = JSON.parse(redisData[0]);
+      messageFromRedis.comment = comment;
+      await app.redis.lset('data', Number(id), JSON.stringify(messageFromRedis));
+      // await app.redis.lest('data',)
+      // const message = await Message.findByPk(id);
+      // if (!message) throw new Error('查無此留言');
+      // await message.update({
+      //   comment,
+      // });
     }
     async deleteMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
-      console.log(id);
       // const message = await Message.findByPk(id);
       // if (!message) throw new Error('查無此留言');
       // await message.destroy();

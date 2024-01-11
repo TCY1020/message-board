@@ -32,7 +32,7 @@ module.exports = app => {
     async putMessage() {
       const { ctx, service, app } = this;
       await service.user.putMessage();
-      await app.redis.del('data');
+      // await app.redis.del('data');
       await ctx.redirect('/message');
     }
 
