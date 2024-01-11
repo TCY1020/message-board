@@ -35,7 +35,6 @@ module.exports = app => {
         index,
         message: JSON.parse(element),
       }));
-      console.log(messagesFromRedis);
       return messagesFromRedis;
     }
 
@@ -53,10 +52,25 @@ module.exports = app => {
         },
       };
       await app.redis.lpush('data', JSON.stringify(data));
-      // await Message.create({
-      //   userId: user,
-      //   comment,
-      // });
+      await app.redis.lpush('update', JSON.stringify(data));
+      setInterval(async () => {
+        const dataLength = await app.redis.llen('update');
+        if (dataLength > 0) {
+          const data = await app.redis.lrange('update', 0, dataLength - 1);
+          const updateFromRedis = data.map((element, index) => ({
+            index,
+            message: JSON.parse(element),
+          }));
+          for (const update of updateFromRedis) {
+            await Message.create({
+              userId: update.message.User.id,
+              comment: update.message.comment,
+            });
+          }
+          await app.redis.del('update');
+        }
+      }, 1000);
+
     }
 
     async editMessage() {
