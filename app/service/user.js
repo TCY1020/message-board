@@ -72,19 +72,17 @@ module.exports = app => {
       messageFromRedis.comment = comment;
       await app.redis.lset('data', Number(id), JSON.stringify(messageFromRedis));
       const dataLength = await app.redis.llen('update');
+      let check;
       // 如果Ｒ未上傳DB，update一起改
-      if (dataLength > 0) {
+      if (dataLength > 0 && dataLength <= Number(id) + 1) {
         const redisData = await app.redis.lrange('update', Number(id), Number(id));
         const updateData = JSON.parse(redisData);
         updateData.comment = comment;
-        await app.redis.lset('update', Number(id), JSON.stringify(updateData));
+        check = await app.redis.lset('update', Number(id), JSON.stringify(updateData));
       }
-      // // await app.redis.lest('data',)
-      // const message = await Message.findByPk(id);
-      // if (!message) throw new Error('查無此留言');
-      // await message.update({
-      //   comment,
-      // });
+      if (check !== 'OK') {
+        await app.redis.lpush('edit', JSON.stringify(messageFromRedis));
+      }
     }
     async deleteMessage() {
       const { ctx } = this;
