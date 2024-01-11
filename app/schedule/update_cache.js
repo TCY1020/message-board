@@ -2,7 +2,7 @@ const { Message, User } = require('../../models');
 
 module.exports = {
   schedule: {
-    interval: '30s',
+    interval: '1m',
     type: 'all',
   },
   async task(ctx) {

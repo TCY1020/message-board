@@ -35,7 +35,6 @@ module.exports = app => {
         index,
         message: JSON.parse(element),
       }));
-      console.log(messagesFromRedis);
       return messagesFromRedis;
     }
 
@@ -69,10 +68,18 @@ module.exports = app => {
       const { comment } = ctx.request.body;
       console.log('修改', id);
       const redisData = await app.redis.lrange('data', Number(id), Number(id));
-      const messageFromRedis = JSON.parse(redisData[0]);
+      const messageFromRedis = JSON.parse(redisData);
       messageFromRedis.comment = comment;
       await app.redis.lset('data', Number(id), JSON.stringify(messageFromRedis));
-      // await app.redis.lest('data',)
+      const dataLength = await app.redis.llen('update');
+      // 如果Ｒ未上傳DB，update一起改
+      if (dataLength > 0) {
+        const redisData = await app.redis.lrange('update', Number(id), Number(id));
+        const updateData = JSON.parse(redisData);
+        updateData.comment = comment;
+        await app.redis.lset('update', Number(id), JSON.stringify(updateData));
+      }
+      // // await app.redis.lest('data',)
       // const message = await Message.findByPk(id);
       // if (!message) throw new Error('查無此留言');
       // await message.update({
