@@ -22,6 +22,7 @@ module.exports = app => {
         messages.forEach(async value => {
           await app.redis.rpush('data', JSON.stringify(value));
         });
+        await app.redis.expire('data', 300);
         const redisData = await app.redis.lrange('data', 0, -1);
         const messagesFromRedis = redisData.map((element, index) => ({
           index,
@@ -46,7 +47,6 @@ module.exports = app => {
       const { user } = ctx.session;
       const userFromRedis = await app.redis.lrange('user', user - 1, user - 1);
       const messageId = await app.redis.incr('messageId');
-      console.log('訊息PK', messageId);
       const userObject = JSON.parse(userFromRedis);
       const data = {
         id: messageId,
@@ -71,7 +71,6 @@ module.exports = app => {
       const { ctx } = this;
       const { id } = ctx.params;
       const { comment } = ctx.request.body;
-      console.log('修改', id);
       const redisData = await app.redis.lrange('data', Number(id), Number(id));
       const messageFromRedis = JSON.parse(redisData);
       messageFromRedis.comment = comment;
@@ -92,10 +91,18 @@ module.exports = app => {
     async deleteMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
-      // const message = await Message.findByPk(id);
-      // if (!message) throw new Error('查無此留言');
-      // await message.destroy();
-      // return id;
+      const redisData = await app.redis.lrange('data', Number(id), Number(id));
+      await app.redis.lrem('data', 0, redisData);
+      const dataLength = await app.redis.llen('update');
+      let check;
+      // 如果Ｒ未上傳DB，update一起刪
+      if (dataLength > 0 && dataLength >= Number(id) + 1) {
+        check = await app.redis.lrem('update', 0, redisData);
+        await app.redis.decr('messageId');
+      }
+      if (check !== 1) {
+        await app.redis.lpush('delete', redisData);
+      }
     }
   };
 };

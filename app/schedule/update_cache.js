@@ -21,16 +21,6 @@ module.exports = {
         }, { raw: true });
       }
       await app.redis.del('update');
-      // await app.redis.del('data');
-      // const messages = await Message.findAll({
-      //   include: [{ model: User }],
-      //   raw: true,
-      //   nest: true,
-      //   order: [[ 'createdAt', 'DESC' ]],
-      // });
-      // messages.forEach(async value => {
-      //   await app.redis.rpush('data', JSON.stringify(value));
-      // });
     }
 
     const editLength = await app.redis.llen('edit');
@@ -44,16 +34,17 @@ module.exports = {
         });
       }
       await app.redis.del('edit');
-      // await app.redis.del('data');
-      // const messages = await Message.findAll({
-      //   include: [{ model: User }],
-      //   raw: true,
-      //   nest: true,
-      //   order: [[ 'createdAt', 'DESC' ]],
-      // });
-      // messages.forEach(async value => {
-      //   await app.redis.rpush('data', JSON.stringify(value));
-      // });
+    }
+
+    const deleteLength = await app.redis.llen('delete');
+    if (deleteLength > 0) {
+      const redisData = await app.redis.lrange('delete', 0, -1);
+      const deleteFromRedis = redisData.map(element => JSON.parse(element));
+      for (const dele of deleteFromRedis) {
+        const message = await Message.findByPk(dele.id);
+        await message.destroy();
+      }
+      await app.redis.del('delete');
     }
   },
 };
