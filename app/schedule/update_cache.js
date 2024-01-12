@@ -21,16 +21,16 @@ module.exports = {
         }, { raw: true });
       }
       await app.redis.del('update');
-      await app.redis.del('data');
-      const messages = await Message.findAll({
-        include: [{ model: User }],
-        raw: true,
-        nest: true,
-        order: [[ 'createdAt', 'DESC' ]],
-      });
-      messages.forEach(async value => {
-        await app.redis.rpush('data', JSON.stringify(value));
-      });
+      // await app.redis.del('data');
+      // const messages = await Message.findAll({
+      //   include: [{ model: User }],
+      //   raw: true,
+      //   nest: true,
+      //   order: [[ 'createdAt', 'DESC' ]],
+      // });
+      // messages.forEach(async value => {
+      //   await app.redis.rpush('data', JSON.stringify(value));
+      // });
     }
 
     const editLength = await app.redis.llen('edit');
@@ -44,16 +44,16 @@ module.exports = {
         });
       }
       await app.redis.del('edit');
-      await app.redis.del('data');
-      const messages = await Message.findAll({
-        include: [{ model: User }],
-        raw: true,
-        nest: true,
-        order: [[ 'createdAt', 'DESC' ]],
-      });
-      messages.forEach(async value => {
-        await app.redis.rpush('data', JSON.stringify(value));
-      });
+      // await app.redis.del('data');
+      // const messages = await Message.findAll({
+      //   include: [{ model: User }],
+      //   raw: true,
+      //   nest: true,
+      //   order: [[ 'createdAt', 'DESC' ]],
+      // });
+      // messages.forEach(async value => {
+      //   await app.redis.rpush('data', JSON.stringify(value));
+      // });
     }
   },
 };

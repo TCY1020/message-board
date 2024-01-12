@@ -3,15 +3,16 @@ const { Message, User } = require('../../models');
 module.exports = app => {
   return class UserService extends app.Service {
     async getMessages() {
-      const user = await app.redis.lrange('user', 0, -1);
-      if (user.length === 0) {
+      await app.redis.setnx('messageId', 5);
+      const userLength = await app.redis.llen('user');
+      if (userLength === 0) {
         const user = await User.findAll({ raw: true });
         user.forEach(async value => {
           await app.redis.rpush('user', JSON.stringify(value));
         });
       }
-      const redisData = await app.redis.lrange('data', 0, -1);
-      if (redisData.length === 0) {
+      const dataLength = await app.redis.llen('data');
+      if (dataLength === 0) {
         const messages = await Message.findAll({
           include: [{ model: User }],
           raw: true,
@@ -30,6 +31,7 @@ module.exports = app => {
         return messagesFromRedis;
       }
 
+      const redisData = await app.redis.lrange('data', 0, -1);
       console.log('redis有東西');
       const messagesFromRedis = redisData.map((element, index) => ({
         index,
@@ -43,8 +45,11 @@ module.exports = app => {
       const { comment } = ctx.request.body;
       const { user } = ctx.session;
       const userFromRedis = await app.redis.lrange('user', user - 1, user - 1);
+      const messageId = await app.redis.incr('messageId');
+      console.log('訊息PK', messageId);
       const userObject = JSON.parse(userFromRedis);
       const data = {
+        id: messageId,
         comment,
         User: {
           id: user,
