@@ -15,7 +15,7 @@ module.exports = {
         message: JSON.parse(element),
       }));
       for (const update of updateFromRedis) {
-        const sqlData = await Message.create({
+        await Message.create({
           userId: update.message.User.id,
           comment: update.message.comment,
         }, { raw: true });
@@ -44,6 +44,16 @@ module.exports = {
         });
       }
       await app.redis.del('edit');
+      await app.redis.del('data');
+      const messages = await Message.findAll({
+        include: [{ model: User }],
+        raw: true,
+        nest: true,
+        order: [[ 'createdAt', 'DESC' ]],
+      });
+      messages.forEach(async value => {
+        await app.redis.rpush('data', JSON.stringify(value));
+      });
     }
   },
 };

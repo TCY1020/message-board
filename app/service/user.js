@@ -74,7 +74,7 @@ module.exports = app => {
       const dataLength = await app.redis.llen('update');
       let check;
       // 如果Ｒ未上傳DB，update一起改
-      if (dataLength > 0 && dataLength <= Number(id) + 1) {
+      if (dataLength > 0 && dataLength >= Number(id) + 1) {
         const redisData = await app.redis.lrange('update', Number(id), Number(id));
         const updateData = JSON.parse(redisData);
         updateData.comment = comment;
