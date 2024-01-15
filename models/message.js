@@ -16,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Message.init({
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: false, // 設置為 false 表示手動生成
+    },
     userId: DataTypes.INTEGER,
     comment: DataTypes.STRING,
   }, {

@@ -16,6 +16,7 @@ module.exports = {
       }));
       for (const update of updateFromRedis) {
         await Message.create({
+          id: update.message.id,
           userId: update.message.User.id,
           comment: update.message.comment,
         }, { raw: true });
