@@ -22,7 +22,6 @@ module.exports = app => {
         messages.forEach(async value => {
           await app.redis.rpush('data', JSON.stringify(value));
         });
-        await app.redis.expire('data', 300);
         const redisData = await app.redis.lrange('data', 0, -1);
         const messagesFromRedis = redisData.map((element, index) => ({
           index,
