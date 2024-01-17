@@ -2,6 +2,7 @@ const { Message, User } = require('../../models');
 
 module.exports = app => {
   return class UserService extends app.Service {
+    // 測試
     async getMessages() {
       await app.redis.setnx('messageId', 5);
       const userLength = await app.redis.llen('user');
