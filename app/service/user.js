@@ -2,7 +2,6 @@ const { Message, User } = require('../../models');
 
 module.exports = app => {
   return class UserService extends app.Service {
-    // 測試
     async getMessages() {
       await app.redis.setnx('messageId', 5);
       const userLength = await app.redis.llen('user');
@@ -20,16 +19,24 @@ module.exports = app => {
           nest: true,
           order: [[ 'createdAt', 'DESC' ]],
         });
-        messages.forEach(async value => {
-          await app.redis.rpush('data', JSON.stringify(value));
-        });
-        const redisData = await app.redis.lrange('data', 0, -1);
-        const messagesFromRedis = redisData.map((element, index) => ({
-          index,
-          message: JSON.parse(element),
-        }));
-        console.log('往資料庫查');
-        return messagesFromRedis;
+        const batchSize = 2; // 每批次寫入的留言數量
+        let batchIndex = 0;
+
+        while (batchIndex * batchSize < messages.length) {
+          const batchMessages = messages.slice(
+            batchIndex * batchSize,
+            (batchIndex + 1) * batchSize
+          );
+
+          // 寫入 Redis
+          await Promise.all(
+            batchMessages.map(async message => {
+              await app.redis.rpush('data', JSON.stringify(message));
+            })
+          );
+          batchIndex++;
+        }
+        console.log('往DB查');
       }
 
       const redisData = await app.redis.lrange('data', 0, -1);

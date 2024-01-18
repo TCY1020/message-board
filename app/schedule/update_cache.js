@@ -21,7 +21,7 @@ module.exports = {
           comment: update.message.comment,
         }, { raw: true });
       }
-      await app.redis.del('update');
+      await app.redis.ltrim('update', updateLength, -1);
     }
 
     const editLength = await app.redis.llen('edit');
@@ -34,7 +34,7 @@ module.exports = {
           comment: edit.comment,
         });
       }
-      await app.redis.del('edit');
+      await app.redis.ltrim('edit', editLength, -1);
     }
 
     const deleteLength = await app.redis.llen('delete');
@@ -45,7 +45,7 @@ module.exports = {
         const message = await Message.findByPk(dele.id);
         await message.destroy();
       }
-      await app.redis.del('delete');
+      await app.redis.ltrim('delete', deleteLength, -1);
     }
   },
 };
