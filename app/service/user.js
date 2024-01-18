@@ -3,7 +3,7 @@ const { Message, User } = require('../../models');
 module.exports = app => {
   return class UserService extends app.Service {
     async getMessages() {
-      await app.redis.setnx('messageId', 5);
+      await app.redis.setnx('messageId', 100);
       const userLength = await app.redis.llen('user');
       if (userLength === 0) {
         const user = await User.findAll({ raw: true });
@@ -38,8 +38,6 @@ module.exports = app => {
           batchIndex++;
         }
         const eTime = Date.now();
-        console.log('開始時間：', sTime);
-        console.log('結束時間：', eTime);
         console.log('寫入時間：', eTime - sTime, 'ms');
         console.log('往DB查');
       }
