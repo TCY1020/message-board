@@ -22,6 +22,7 @@ module.exports = app => {
         const batchSize = 2; // 每批次寫入的留言數量
         let batchIndex = 0;
 
+        const sTime = Date.now();
         while (batchIndex * batchSize < messages.length) {
           const batchMessages = messages.slice(
             batchIndex * batchSize,
@@ -36,6 +37,10 @@ module.exports = app => {
           );
           batchIndex++;
         }
+        const eTime = Date.now();
+        console.log('開始時間：', sTime);
+        console.log('結束時間：', eTime);
+        console.log('寫入時間：', eTime - sTime, 'ms');
         console.log('往DB查');
       }
 
