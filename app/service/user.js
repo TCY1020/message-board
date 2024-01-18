@@ -67,7 +67,7 @@ module.exports = app => {
         },
       };
       await app.redis.lpush('data', JSON.stringify(data));
-      await app.redis.lpush('update', JSON.stringify(data));
+      await app.redis.rpush('update', JSON.stringify(data));
     }
 
     async editMessage() {
@@ -95,7 +95,7 @@ module.exports = app => {
         check = await app.redis.lset('update', Number(id), JSON.stringify(updateData));
       }
       if (check !== 'OK') {
-        await app.redis.lpush('edit', JSON.stringify(messageFromRedis));
+        await app.redis.rpush('edit', JSON.stringify(messageFromRedis));
       }
     }
     async deleteMessage() {
@@ -111,7 +111,7 @@ module.exports = app => {
         await app.redis.decr('messageId');
       }
       if (check !== 1) {
-        await app.redis.lpush('delete', redisData);
+        await app.redis.rpush('delete', redisData);
       }
     }
   };
