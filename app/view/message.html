@@ -1,8 +1,7 @@
 <h1> 留言訊息</h1>
 <% for(let i=0; i < data.length; i++){ %>
   <div>
-    <h3> 名字： <%=data[i].message.User.name%>
-    </h3>
+    <a href="/message?userId=<%=data[i].message.userId%>"><h3> 名字： <%=data[i].message.User.name%></h3></a>
     <p>
       <%=data[i].message.comment%>
     </p>

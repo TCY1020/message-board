@@ -3,7 +3,11 @@ const { Message, User } = require('../../models');
 module.exports = app => {
   return class UserService extends app.Service {
     async getMessages() {
-      await app.redis.setnx('messageId', 100);
+      const { ctx } = this;
+      const userId = ctx.query.userId;
+      // 存message ID
+      await app.redis.setnx('messageId', 15);
+      // 存使用者
       const userLength = await app.redis.llen('user');
       if (userLength === 0) {
         const user = await User.findAll({ raw: true });
@@ -11,6 +15,39 @@ module.exports = app => {
           await app.redis.rpush('user', JSON.stringify(value));
         });
       }
+      // 特殊查詢
+      if (userId) {
+        const dataLength = await app.redis.llen(`data_user_id${userId}`);
+        if (dataLength === 0) {
+          console.log('有進來');
+          const messages = await Message.findAll({
+            include: [{ model: User }],
+            where: { userId: Number(userId) },
+            raw: true,
+            nest: true,
+            order: [[ 'createdAt', 'DESC' ]],
+          });
+          // 將 Redis 裡的 data 拿出來
+          const totalMessages = await app.redis.lrange('data', 0, -1);
+          const newTotalMessages = totalMessages.map((element, index) => ({
+            index,
+            message: JSON.parse(element),
+          }));
+          const dbMessageId = messages.map(element => element.id);
+          // 篩選出我要的 Redis 裡的 data
+          const filterMessage = newTotalMessages.filter(element => dbMessageId.includes(element.message.id));
+          filterMessage.forEach(async message => {
+            await app.redis.rpush(`data_user_id${userId}`, JSON.stringify(message));
+          });
+          await app.redis.expire(`data_user_id${userId}`, 60);
+        }
+        const redisData = await app.redis.lrange(`data_user_id${userId}`, 0, -1);
+        console.log('redis有東西');
+        const messagesFromRedis = redisData.map(element => (JSON.parse(element)));
+        return messagesFromRedis;
+      }
+
+      // 查詢全部
       const dataLength = await app.redis.llen('data');
       if (dataLength === 0) {
         const messages = await Message.findAll({
@@ -19,7 +56,7 @@ module.exports = app => {
           nest: true,
           order: [[ 'createdAt', 'DESC' ]],
         });
-        const batchSize = 2; // 每批次寫入的留言數量
+        const batchSize = 100; // 每批次寫入的留言數量
         let batchIndex = 0;
 
         const sTime = Date.now();
@@ -48,6 +85,7 @@ module.exports = app => {
         index,
         message: JSON.parse(element),
       }));
+      console.log(messagesFromRedis);
       return messagesFromRedis;
     }
 
@@ -60,12 +98,14 @@ module.exports = app => {
       const userObject = JSON.parse(userFromRedis);
       const data = {
         id: messageId,
+        userId: user,
         comment,
         User: {
           id: user,
           name: userObject.name,
         },
       };
+      await app.redis.del(`data_user_id${user}`);
       await app.redis.lpush('data', JSON.stringify(data));
       await app.redis.rpush('update', JSON.stringify(data));
     }
@@ -83,6 +123,8 @@ module.exports = app => {
       const { comment } = ctx.request.body;
       const redisData = await app.redis.lrange('data', Number(id), Number(id));
       const messageFromRedis = JSON.parse(redisData);
+      // 刪除 Redis 裡有關的客製化資料
+      await app.redis.del(`data_user_id${messageFromRedis.User.id}`);
       messageFromRedis.comment = comment;
       await app.redis.lset('data', Number(id), JSON.stringify(messageFromRedis));
       const dataLength = await app.redis.llen('update');
@@ -102,6 +144,9 @@ module.exports = app => {
       const { ctx } = this;
       const { id } = ctx.params;
       const redisData = await app.redis.lrange('data', Number(id), Number(id));
+      const messageFromRedis = JSON.parse(redisData);
+      // 刪除 Redis 裡有關的客製化資料
+      await app.redis.del(`data_user_id${messageFromRedis.User.id}`);
       await app.redis.lrem('data', 0, redisData);
       const dataLength = await app.redis.llen('update');
       let check;

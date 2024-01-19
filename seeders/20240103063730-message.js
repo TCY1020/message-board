@@ -7,7 +7,7 @@ module.exports = {
     const user = await User.findAll({ raw: true });
     const list = [];
     await Promise.all(user.map(async person => {
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 3; i++) {
         list.push(person.id);
       }
     }));
