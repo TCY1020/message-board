@@ -19,7 +19,6 @@ module.exports = app => {
       if (userId) {
         const dataLength = await app.redis.llen(`data_user_id${userId}`);
         if (dataLength === 0) {
-          console.log('有進來');
           const messages = await Message.findAll({
             include: [{ model: User }],
             where: { userId: Number(userId) },
@@ -40,6 +39,7 @@ module.exports = app => {
             await app.redis.rpush(`data_user_id${userId}`, JSON.stringify(message));
           });
           await app.redis.expire(`data_user_id${userId}`, 60);
+          console.log('往DB查');
         }
         const redisData = await app.redis.lrange(`data_user_id${userId}`, 0, -1);
         console.log('redis有東西');
@@ -85,7 +85,6 @@ module.exports = app => {
         index,
         message: JSON.parse(element),
       }));
-      console.log(messagesFromRedis);
       return messagesFromRedis;
     }
 
