@@ -12,8 +12,8 @@ module.exports = app => {
 
     async getMessages() {
       const { ctx, service } = this;
-      const [ data, pagination ] = await service.user.getMessages();
-      await ctx.render('message', { data, pagination });
+      const [ data, pagination, userId ] = await service.user.getMessages();
+      await ctx.render('message', { data, pagination, userId });
     }
 
     async postMessage() {

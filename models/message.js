@@ -23,6 +23,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     userId: DataTypes.INTEGER,
     comment: DataTypes.STRING,
+    createdAt: DataTypes.DATE,
   }, {
     sequelize,
     modelName: 'Message',

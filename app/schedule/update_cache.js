@@ -9,43 +9,44 @@ module.exports = {
     const { app } = ctx;
     const updateLength = await app.redis.llen('update');
     if (updateLength > 0) {
-      const redisData = await app.redis.lrange('update', 0, -1);
-      const updateFromRedis = redisData.map((element, index) => ({
-        index,
-        message: JSON.parse(element),
-      }));
-      for (const update of updateFromRedis) {
-        await Message.create({
-          id: update.message.id,
-          userId: update.message.User.id,
-          comment: update.message.comment,
-        }, { raw: true });
+      for (let i = 0; i < updateLength; i += 50) {
+        const redisData = await app.redis.lpop('update', 50);
+        const updateFromRedis = redisData.map(element => JSON.parse(element));
+        for (const update of updateFromRedis) {
+          await Message.create({
+            id: update.data.id,
+            userId: update.data.userId,
+            comment: update.data.comment,
+            createdAt: update.createdAt,
+          });
+        }
       }
-      await app.redis.ltrim('update', updateLength, -1);
     }
 
     const editLength = await app.redis.llen('edit');
     if (editLength > 0) {
-      const redisData = await app.redis.lrange('edit', 0, -1);
-      const editFromRedis = redisData.map(element => JSON.parse(element));
-      for (const edit of editFromRedis) {
-        const message = await Message.findByPk(edit.id);
-        await message.update({
-          comment: edit.comment,
-        });
+      for (let i = 0; i < editLength; i += 50) {
+        const redisData = await app.redis.lpop('edit', 50);
+        const editFromRedis = redisData.map(element => JSON.parse(element));
+        for (const edit of editFromRedis) {
+          const message = await Message.findByPk(edit.id);
+          await message.update({
+            comment: edit.comment,
+          });
+        }
       }
-      await app.redis.ltrim('edit', editLength, -1);
     }
 
     const deleteLength = await app.redis.llen('delete');
     if (deleteLength > 0) {
-      const redisData = await app.redis.lrange('delete', 0, -1);
-      const deleteFromRedis = redisData.map(element => JSON.parse(element));
-      for (const dele of deleteFromRedis) {
-        const message = await Message.findByPk(dele.id);
-        await message.destroy();
+      for (let i = 0; i < deleteLength; i += 50) {
+        const redisData = await app.redis.lpop('delete', 50);
+        const deleteFromRedis = redisData.map(element => JSON.parse(element));
+        for (const dele of deleteFromRedis) {
+          const message = await Message.findByPk(dele.id);
+          await message.destroy();
+        }
       }
-      await app.redis.ltrim('delete', deleteLength, -1);
     }
   },
 };

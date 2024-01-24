@@ -23,7 +23,7 @@
     <ul style="display: inline;">
       <% pagination.pages.forEach(value=> { %>
         <li class="page-item" style="display: inline;">
-          <a href="/message?page=<%= value %>&userId=<%=data[0].message.userId%>" class="page-link">
+          <a href="/message?page=<%= value %>&userId=<%=userId%>" class="page-link">
             <%= value %>
           </a>
         </li>

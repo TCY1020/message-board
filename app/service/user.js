@@ -18,7 +18,7 @@ module.exports = app => {
       }
       // 特殊查詢
       if (userId) {
-        const dataOnRedis = await app.redis.exists(`zData_user_id${userId}`);
+        const dataOnRedis = await app.redis.exists(`data_user_id${userId}`);
         if (!dataOnRedis) {
           const messages = await Message.findAll({
             include: [{ model: User }],
@@ -27,31 +27,31 @@ module.exports = app => {
             nest: true,
             order: [[ 'createdAt', 'DESC' ]],
           });
-          const totalMessages = await app.redis.zrevrange('zData', 0, -1, 'WITHSCORES');
-          const newTotalMessages = [];
-          await ctx.helper.organizer(newTotalMessages, totalMessages);
+          const totalMessages = await app.redis.lrange('data', 0, -1);
+          const newTotalMessages = totalMessages.map((message, index) => ({
+            index: index + (page - 1) * 10,
+            message: JSON.parse(message),
+          }));
           const dbMessageId = messages.map(element => element.id);
           // 篩選出我要的 Redis 裡的 data
           const filterMessage = newTotalMessages.filter(element => dbMessageId.includes(element.message.id));
           filterMessage.forEach(async data => {
-            await app.redis.zadd(`zData_user_id${userId}`, data.message.timestamp, JSON.stringify(data));
+            await app.redis.rpush(`data_user_id${userId}`, JSON.stringify(data));
           });
-          await app.redis.expire(`zData_user_id${userId}`, 60);
+          await app.redis.expire(`data_user_id${userId}`, 60);
           console.log('往DB查');
         }
         // 分頁器
-        const total = await app.redis.zcard(`zData_user_id${userId}`);
+        const total = await app.redis.llen(`data_user_id${userId}`);
         const pagination = ctx.helper.getPagination(page, 10, total);
-        const redisData = await app.redis.zrevrange(`zData_user_id${userId}`, pagination.start, pagination.end);
+        const redisData = await app.redis.lrange(`data_user_id${userId}`, pagination.start, pagination.end);
         console.log('redis有東西');
         const messagesFromRedis = redisData.map(element => (JSON.parse(element)));
-        console.log(messagesFromRedis);
-
-        return [ messagesFromRedis, pagination ];
+        return [ messagesFromRedis, pagination, userId ];
       }
 
       // 查詢全部
-      const dataOnRedis = await app.redis.exists('zData');
+      const dataOnRedis = await app.redis.exists('data');
       if (!dataOnRedis) {
         const messages = await Message.findAll({
           include: [{ model: User }],
@@ -60,14 +60,11 @@ module.exports = app => {
           order: [[ 'createdAt', 'DESC' ]],
         });
         const pruneMessages = messages.map(message => ({
-          createdAt: message.createdAt,
-          data: {
-            id: message.id,
-            userId: message.userId,
-            comment: message.comment,
-            User: {
-              name: message.User.name,
-            },
+          id: message.id,
+          userId: message.userId,
+          comment: message.comment,
+          User: {
+            name: message.User.name,
           },
         }));
         const batchSize = 100; // 每批次寫入的留言數量
@@ -81,8 +78,7 @@ module.exports = app => {
 
           await Promise.all(
             batchMessages.map(async message => {
-              const timestamp = message.createdAt.getTime();
-              await app.redis.zadd('zData', timestamp, JSON.stringify(message.data));
+              await app.redis.rpush('data', JSON.stringify(message));
             })
           );
           batchIndex++;
@@ -91,12 +87,17 @@ module.exports = app => {
       }
 
       // 分頁器
-      const total = await app.redis.zcard('zData');
+      const total = await app.redis.llen('data');
       const pagination = ctx.helper.getPagination(page, 10, total);
-      const redisData = await app.redis.zrevrange('zData', pagination.start, pagination.end, 'WITHSCORES');
+      const redisData = await app.redis.lrange('data', pagination.start, pagination.end);
       console.log('redis有東西');
-      const messagesFromRedis = [];
-      await ctx.helper.organizer(messagesFromRedis, redisData);
+      const messagesFromRedis = redisData.map((message, index) => ({
+        index: index + (page - 1) * 10,
+        message: JSON.parse(message),
+      }));
+      console.log('資料', messagesFromRedis);
+      // const messagesFromRedis = [];
+      // await ctx.helper.organizer(messagesFromRedis, redisData);
       return [ messagesFromRedis, pagination ];
     }
 
@@ -107,18 +108,20 @@ module.exports = app => {
       const userFromRedis = await app.redis.lrange('user', user - 1, user - 1);
       const messageId = await app.redis.incr('messageId');
       const userObject = JSON.parse(userFromRedis);
-      const data = {
-        id: messageId,
-        userId: user,
-        comment,
-        User: {
-          id: user,
-          name: userObject.name,
+      const message = {
+        createdAt: new Date().toISOString(),
+        data: {
+          id: messageId,
+          userId: user,
+          comment,
+          User: {
+            name: userObject.name,
+          },
         },
       };
-      await app.redis.del(`data_user_id${user}`);
-      await app.redis.lpush('data', JSON.stringify(data));
-      await app.redis.rpush('update', JSON.stringify(data));
+      await app.redis.del(`zData_user_id${user}`);
+      await app.redis.lpush('data', JSON.stringify(message.data));
+      await app.redis.rpush('update', JSON.stringify(message));
     }
 
     async editMessage() {
