@@ -1,5 +1,5 @@
 module.exports = app => {
-  return class HomeController extends app.Controller {
+  return class BoardController extends app.Controller {
     async index() {
       const { ctx } = this;
       await ctx.render('login');
@@ -12,8 +12,8 @@ module.exports = app => {
 
     async getMessages() {
       const { ctx, service } = this;
-      const data = await service.user.getMessages();
-      await ctx.render('message', { data });
+      const [ data, pagination ] = await service.user.getMessages();
+      await ctx.render('message', { data, pagination });
     }
 
     async postMessage() {

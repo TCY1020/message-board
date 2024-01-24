@@ -3,12 +3,12 @@
  */
 module.exports = app => {
   const { router, controller } = app;
-  router.get('/', controller.home.index);
-  router.post('/login', controller.home.login);
+  router.get('/', controller.board.index);
+  router.post('/login', controller.board.login);
   // router.post('/login', app.passport.authenticate('local', { successRedirect: '/message', failureRedirect: '/' }));
-  router.get('/message', controller.home.getMessages);
-  router.post('/message/create', controller.home.postMessage);
-  router.get('/message/:id/edit', controller.home.editMessage);
-  router.put('/message/:id/edit', controller.home.putMessage);
-  router.delete('/message/:id/delete', controller.home.deleteMessage);
+  router.get('/message', controller.board.getMessages);
+  router.post('/message/create', controller.board.postMessage);
+  router.get('/message/:id/edit', controller.board.editMessage);
+  router.put('/message/:id/edit', controller.board.putMessage);
+  router.delete('/message/:id/delete', controller.board.deleteMessage);
 };

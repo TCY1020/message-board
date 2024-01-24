@@ -20,3 +20,13 @@
       <textarea name="comment" id="comment" cols="30" rows="10"></textarea>
       <button type="submit">Submit</button>
     </form>
+    <ul style="display: inline;">
+      <% pagination.pages.forEach(value=> { %>
+        <li class="page-item" style="display: inline;">
+          <a href="/message?page=<%= value %>&userId=<%=data[0].message.userId%>" class="page-link">
+            <%= value %>
+          </a>
+        </li>
+        <% }) %>
+    </ul>
+    </div>
