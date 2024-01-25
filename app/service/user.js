@@ -145,7 +145,6 @@ module.exports = app => {
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, Number(id), Number(id));
         redisData = await multi.exec();
-        console.log('資料', redisData);
         await app.redis.lrem(`data_page${page}`, 0, redisData[0][1]);
       }
       const dataLength = await app.redis.llen('update');
