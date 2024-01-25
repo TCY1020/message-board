@@ -1,4 +1,4 @@
-const { Message, User } = require('../../models');
+const { Message } = require('../../models');
 
 module.exports = {
   schedule: {
@@ -29,7 +29,7 @@ module.exports = {
         const redisData = await app.redis.lpop('edit', 50);
         const editFromRedis = redisData.map(element => JSON.parse(element));
         for (const edit of editFromRedis) {
-          const message = await Message.findByPk(edit.id);
+          const message = await Message.findByPk(edit.messageId);
           await message.update({
             comment: edit.comment,
           });
@@ -41,9 +41,8 @@ module.exports = {
     if (deleteLength > 0) {
       for (let i = 0; i < deleteLength; i += 50) {
         const redisData = await app.redis.lpop('delete', 50);
-        const deleteFromRedis = redisData.map(element => JSON.parse(element));
-        for (const dele of deleteFromRedis) {
-          const message = await Message.findByPk(dele.id);
+        for (const dele of redisData) {
+          const message = await Message.findByPk(dele);
           await message.destroy();
         }
       }

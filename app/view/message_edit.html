@@ -6,6 +6,7 @@
     <label for="comment"></label>
     <textarea name="comment" id="comment" cols="30" rows="10"><%= data.message.comment %></textarea>
     <input type="text" name="page" value="<%= page %>" hidden>
+    <input type="text" name="messageId" value="<%= data.message.id %>" hidden>
     <button type="submit">Submit</button>
   </form>
 </div>

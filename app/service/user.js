@@ -108,15 +108,16 @@ module.exports = app => {
     async putMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
-      const { comment, page } = ctx.request.body;
+      const { comment, messageId, page } = ctx.request.body;
+      const editData = { messageId, comment };
       const multi = app.redis.multi();
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
-      let messageFromRedis;
+      // let messageFromRedis;
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, Number(id), Number(id));
         const redisData = await multi.exec();
-        messageFromRedis = JSON.parse(redisData[0][1]);
+        const messageFromRedis = JSON.parse(redisData[0][1]);
         messageFromRedis.comment = comment;
         await app.redis.lset(`data_page${page}`, Number(id), JSON.stringify(messageFromRedis));
       }
@@ -130,14 +131,13 @@ module.exports = app => {
         check = await app.redis.lset('update', Number(id), JSON.stringify(updateData));
       }
       if (check !== 'OK') {
-        await app.redis.rpush('edit', JSON.stringify(messageFromRedis));
+        await app.redis.rpush('edit', JSON.stringify(editData));
       }
     }
     async deleteMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
-      const { page } = ctx.request.body;
-      console.log('頁數', page);
+      const { page, messageId } = ctx.request.body;
       const multi = app.redis.multi();
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       let redisData;
@@ -156,7 +156,7 @@ module.exports = app => {
         await app.redis.decr('messageId');
       }
       if (check !== 1) {
-        await app.redis.rpush('delete', redisData[0][1]);
+        await app.redis.rpush('delete', messageId);
       }
     }
   };

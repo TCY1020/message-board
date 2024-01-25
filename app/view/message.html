@@ -7,9 +7,11 @@
     </p>
     <a href="/message/<%=data[i].index%>/edit?page=<%= page %>">
       <button type="submit">修改</button>
+    </a>
     <form style="display: inline-block;" action="/message/<%=data[i].index%>/delete" method="post">
       <input type="hidden" name="_method" value="delete">
       <input type="hidden" name="page" value="<%= page %>">
+      <input type="hidden" name="messageId" value="<%=data[i].message.id%>">
       <button type="submit">刪除</button>
     </form>
   </div>
