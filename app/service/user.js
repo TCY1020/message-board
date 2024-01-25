@@ -4,8 +4,14 @@ module.exports = app => {
   return class UserService extends app.Service {
     async getMessages() {
       const { ctx } = this;
+      const multi = app.redis.multi();
       const userId = ctx.query.userId || '';
       const page = ctx.query.page || 1;
+      const limit = 10;
+      const offset = ctx.helper.getOffset(limit, page);
+      // 存訊息總數
+      const messageCount = await Message.count();
+      await app.redis.setnx('messageCount', messageCount);
       // 存message ID
       await app.redis.setnx('messageId', 15);
       // 存使用者
@@ -50,54 +56,37 @@ module.exports = app => {
         return [ messagesFromRedis, pagination, userId ];
       }
 
-      // 查詢全部
-      const dataOnRedis = await app.redis.exists('data');
+      // 查詢特定頁數據
+      const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (!dataOnRedis) {
-        const messages = await Message.findAll({
-          include: [{ model: User }],
-          raw: true,
-          nest: true,
-          order: [[ 'createdAt', 'DESC' ]],
-        });
-        const pruneMessages = messages.map(message => ({
-          id: message.id,
-          userId: message.userId,
-          comment: message.comment,
-          User: {
-            name: message.User.name,
-          },
-        }));
-        const batchSize = 100; // 每批次寫入的留言數量
-        let batchIndex = 0;
-
-        while (batchIndex * batchSize < pruneMessages.length) {
-          const batchMessages = pruneMessages.slice(
-            batchIndex * batchSize,
-            (batchIndex + 1) * batchSize
-          );
-
-          await Promise.all(
-            batchMessages.map(async message => {
-              await app.redis.rpush('data', JSON.stringify(message));
-            })
-          );
-          batchIndex++;
-        }
-        console.log('往DB查');
+        await ctx.helper.doSomething(page, limit, offset, app, Message, User);
       }
 
-      // 分頁器
-      const total = await app.redis.llen('data');
-      const pagination = ctx.helper.getPagination(page, 10, total);
-      const redisData = await app.redis.lrange('data', pagination.start, pagination.end);
+      // 檢查同分秒問題
+      await app.redis.watch(`data_page${page}`);
+      multi.lrange(`data_page${page}`, 0, -1);
+      const redisData = await multi.exec();
+      if (redisData === null) {
+        await ctx.helper.doSomething(page, limit, offset, app, Message, User);
+        const redisData = app.redis.lrange(`data_page${page}`, 0, -1);
+        const messagesFromRedis = redisData.map((message, index) => ({
+          index,
+          message: JSON.parse(message),
+        }));
+        const totalMessageCount = Number(await app.redis.get('messageCount'));
+        const pagination = ctx.helper.getPagination(page, limit, totalMessageCount);
+        return [ messagesFromRedis, pagination ];
+      }
+
       console.log('redis有東西');
-      const messagesFromRedis = redisData.map((message, index) => ({
-        index: index + (page - 1) * 10,
+      const messagesFromRedis = redisData[0][1].map((message, index) => ({
+        index,
         message: JSON.parse(message),
       }));
-      console.log('資料', messagesFromRedis);
-      // const messagesFromRedis = [];
-      // await ctx.helper.organizer(messagesFromRedis, redisData);
+      const totalMessageCount = Number(await app.redis.get('messageCount'));
+      const pagination = ctx.helper.getPagination(page, limit, totalMessageCount);
+      await app.redis.unwatch();
+
       return [ messagesFromRedis, pagination ];
     }
 
