@@ -12,8 +12,8 @@ module.exports = app => {
 
     async getMessages() {
       const { ctx, service } = this;
-      const [ data, pagination, userId ] = await service.user.getMessages();
-      await ctx.render('message', { data, pagination, userId });
+      const [ data, pagination, page ] = await service.user.getMessages();
+      await ctx.render('message', { data, pagination, page });
     }
 
     async postMessage() {
@@ -24,8 +24,8 @@ module.exports = app => {
 
     async editMessage() {
       const { ctx, service } = this;
-      const data = await service.user.editMessage();
-      await ctx.render('message_edit', { data });
+      const [ data, page ] = await service.user.editMessage();
+      await ctx.render('message_edit', { data, page });
     }
 
     async putMessage() {

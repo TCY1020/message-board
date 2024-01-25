@@ -25,7 +25,7 @@ const doSomething = async (page, limit, offset, app, Message, User) => {
     },
   }));
   pruneMessages.forEach(async message => { await app.redis.rpush(`data_page${page}`, JSON.stringify(message)); });
-  await app.redis.expire(`data_page${page}`, 60);
+  await app.redis.expire(`data_page${page}`, 90);
   console.log('往DB查');
 
 };

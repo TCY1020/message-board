@@ -5,11 +5,11 @@
     <p>
       <%=data[i].message.comment%>
     </p>
-    <form style="display: inline-block;" action="/message/<%=data[i].index%>/edit" method="get">
+    <a href="/message/<%=data[i].index%>/edit?page=<%= page %>">
       <button type="submit">修改</button>
-    </form>
     <form style="display: inline-block;" action="/message/<%=data[i].index%>/delete" method="post">
       <input type="hidden" name="_method" value="delete">
+      <input type="hidden" name="page" value="<%= page %>">
       <button type="submit">刪除</button>
     </form>
   </div>
@@ -23,7 +23,7 @@
     <ul style="display: inline;">
       <% pagination.pages.forEach(value=> { %>
         <li class="page-item" style="display: inline;">
-          <a href="/message?page=<%= value %>&userId=<%=userId%>" class="page-link">
+          <a href="/message?page=<%= value %>" class="page-link">
             <%= value %>
           </a>
         </li>
