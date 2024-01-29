@@ -7,7 +7,7 @@ const getPagination = (page = 1, limit = 10, total) => {
 };
 const getOffset = (limit = 10, page = 1) => (page - 1) * limit;
 
-const doSomething = async (page, limit, offset, app, Message, User) => {
+const pullSqlToRedis = async (page, limit, offset, app, Message, User) => {
   const messages = await Message.findAll({
     include: [{ model: User }],
     limit,
@@ -33,5 +33,5 @@ const doSomething = async (page, limit, offset, app, Message, User) => {
 module.exports = {
   getPagination,
   getOffset,
-  doSomething,
+  pullSqlToRedis,
 };

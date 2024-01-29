@@ -26,7 +26,7 @@ module.exports = app => {
       // 查詢特定頁數據
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (!dataOnRedis) {
-        await ctx.helper.doSomething(page, limit, offset, app, Message, User);
+        await ctx.helper.pullSqlToRedis(page, limit, offset, app, Message, User);
       }
 
       // 檢查同分秒問題
@@ -34,7 +34,7 @@ module.exports = app => {
       multi.lrange(`data_page${page}`, 0, -1);
       const redisData = await multi.exec();
       if (redisData === null) {
-        await ctx.helper.doSomething(page, limit, offset, app, Message, User);
+        await ctx.helper.pullSqlToRedis(page, limit, offset, app, Message, User);
         const redisData = app.redis.lrange(`data_page${page}`, 0, -1);
         const messagesFromRedis = redisData.map((message, index) => ({
           index,
@@ -100,7 +100,7 @@ module.exports = app => {
         const messageFromRedis = { index: id, message: JSON.parse(redisData[0][1]) };
         return [ messageFromRedis, page ];
       }
-      await ctx.helper.doSomething(page, limit, offset, app, Message, User);
+      await ctx.helper.pullSqlToRedis(page, limit, offset, app, Message, User);
       const redisData = await app.redis.lrange(`data_page${page}`, Number(id), Number(id));
       const messageFromRedis = { index: id, message: JSON.parse(redisData) };
       return [ messageFromRedis, page ];
@@ -112,7 +112,6 @@ module.exports = app => {
       const editData = { messageId, comment };
       const multi = app.redis.multi();
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
-      // let messageFromRedis;
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, Number(id), Number(id));
