@@ -1,6 +1,5 @@
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcryptjs');
-const { User } = require('./models');
 
 module.exports = app => {
   app.passport.use(
@@ -10,9 +9,9 @@ module.exports = app => {
         passwordField: 'password',
         passReqToCallback: true,
       },
-      async (req, account, password, cb) => {
+      async (ctx, account, password, cb) => {
         try {
-          const user = await User.findOne({ where: { account } });
+          const user = await ctx.model.findOne({ where: { account } });
           if (!user) {
             return cb(null, false, { message: '帳號錯誤' });
           }
@@ -34,7 +33,7 @@ module.exports = app => {
 
   app.passport.deserializeUser(async (ctx, id) => {
     try {
-      const user = await User.findByPk(id);
+      const user = await ctx.model.findByPk(id);
 
       if (!user) {
         return null;

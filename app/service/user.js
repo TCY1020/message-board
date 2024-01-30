@@ -1,5 +1,3 @@
-const { Message, User } = require('../../models');
-
 module.exports = app => {
   return class UserService extends app.Service {
     async getMessages() {
@@ -9,7 +7,8 @@ module.exports = app => {
       const limit = 10;
       const offset = ctx.helper.getOffset(limit, page);
       // 存訊息總數
-      const messageCount = await Message.count();
+      const messageCount = await ctx.model.Message.count();
+      console.log('總數', messageCount);
       await app.redis.setnx('messageCount', messageCount);
       await app.redis.expire('messageCount', 60);
       // 存message ID
@@ -17,7 +16,7 @@ module.exports = app => {
       // 存使用者
       const userLength = await app.redis.llen('user');
       if (userLength === 0) {
-        const user = await User.findAll({ raw: true });
+        const user = await ctx.model.User.findAll({ raw: true });
         user.forEach(async value => {
           await app.redis.rpush('user', JSON.stringify(value));
         });
@@ -26,7 +25,7 @@ module.exports = app => {
       // 查詢特定頁數據
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (!dataOnRedis) {
-        await ctx.helper.pullSqlToRedis(page, limit, offset, app, Message, User);
+        await ctx.helper.pullSqlToRedis(page, limit, offset, app, ctx.model.Message, ctx.model.User);
       }
 
       // 檢查同分秒問題
@@ -34,7 +33,7 @@ module.exports = app => {
       multi.lrange(`data_page${page}`, 0, -1);
       const redisData = await multi.exec();
       if (redisData === null) {
-        await ctx.helper.pullSqlToRedis(page, limit, offset, app, Message, User);
+        await ctx.helper.pullSqlToRedis(page, limit, offset, app, ctx.model.Message, ctx.model.User);
         const redisData = app.redis.lrange(`data_page${page}`, 0, -1);
         const messagesFromRedis = redisData.map((message, index) => ({
           index,
@@ -100,7 +99,7 @@ module.exports = app => {
         const messageFromRedis = { index: id, message: JSON.parse(redisData[0][1]) };
         return [ messageFromRedis, page ];
       }
-      await ctx.helper.pullSqlToRedis(page, limit, offset, app, Message, User);
+      await ctx.helper.pullSqlToRedis(page, limit, offset, app, ctx.model.Message, ctx.model.User);
       const redisData = await app.redis.lrange(`data_page${page}`, Number(id), Number(id));
       const messageFromRedis = { index: id, message: JSON.parse(redisData) };
       return [ messageFromRedis, page ];

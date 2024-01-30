@@ -1,4 +1,3 @@
-const { Message } = require('../../models');
 
 module.exports = {
   schedule: {
@@ -13,7 +12,7 @@ module.exports = {
         const redisData = await app.redis.lpop('update', 50);
         const updateFromRedis = redisData.map(element => JSON.parse(element));
         for (const update of updateFromRedis) {
-          await Message.create({
+          await ctx.model.Message.create({
             id: update.data.id,
             userId: update.data.userId,
             comment: update.data.comment,
@@ -29,7 +28,7 @@ module.exports = {
         const redisData = await app.redis.lpop('edit', 50);
         const editFromRedis = redisData.map(element => JSON.parse(element));
         for (const edit of editFromRedis) {
-          const message = await Message.findByPk(edit.messageId);
+          const message = await ctx.model.Message.findByPk(edit.messageId);
           await message.update({
             comment: edit.comment,
           });
@@ -42,7 +41,7 @@ module.exports = {
       for (let i = 0; i < deleteLength; i += 50) {
         const redisData = await app.redis.lpop('delete', 50);
         for (const dele of redisData) {
-          const message = await Message.findByPk(dele);
+          const message = await ctx.model.Message.findByPk(dele);
           await message.destroy();
         }
       }
