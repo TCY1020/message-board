@@ -32,7 +32,7 @@ module.exports = app => {
       // 查詢特定頁數據
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (!dataOnRedis) {
-        await ctx.helper.pullSqlToRedis(page, limit, messagePagination.getOffset(), app, ctx.model.Message, ctx.model.User);
+        await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
       }
 
       // 檢查同分秒問題
@@ -41,7 +41,7 @@ module.exports = app => {
       multi.lrange(`data_page${page}`, 0, -1);
       const redisData = await multi.exec();
       if (redisData === null) {
-        await ctx.helper.pullSqlToRedis(page, limit, messagePagination.getOffset(), app, ctx.model.Message, ctx.model.User);
+        await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
         const redisData = app.redis.lrange(`data_page${page}`, 0, -1);
         messagesFromRedis = redisData.map((message, index) => ({
           index,
@@ -106,7 +106,7 @@ module.exports = app => {
         const redisData = await multi.exec();
         messageFromRedis = { index: id, message: JSON.parse(redisData[0][1]) };
       } else {
-        await ctx.helper.pullSqlToRedis(page, limit, messagePagination.getOffset(), app, ctx.model.Message, ctx.model.User);
+        await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
         const redisData = await app.redis.lrange(`data_page${page}`, Number(id), Number(id));
         messageFromRedis = { index: id, message: JSON.parse(redisData) };
       }
@@ -120,6 +120,7 @@ module.exports = app => {
       const { comment, messageId, page } = ctx.request.body;
       const editData = { messageId, comment };
       const multi = app.redis.multi();
+
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
@@ -129,6 +130,7 @@ module.exports = app => {
         messageFromRedis.comment = comment;
         await app.redis.lset(`data_page${page}`, Number(id), JSON.stringify(messageFromRedis));
       }
+
       const dataLength = await app.redis.llen('update');
       let check;
       // 如果Ｒ未上傳DB，update一起改
@@ -147,6 +149,7 @@ module.exports = app => {
       const { id } = ctx.params;
       const { page, messageId } = ctx.request.body;
       const multi = app.redis.multi();
+
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       let redisData;
       if (dataOnRedis) {
@@ -155,6 +158,7 @@ module.exports = app => {
         redisData = await multi.exec();
         await app.redis.lrem(`data_page${page}`, 0, redisData[0][1]);
       }
+
       const dataLength = await app.redis.llen('update');
       let check;
       // 如果Ｒ未上傳DB，update一起刪
