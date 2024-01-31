@@ -41,7 +41,6 @@ module.exports = {
       for (let i = 0; i < deleteLength; i += 50) {
         const redisData = await app.redis.lpop('delete', 50);
         const deleteIds = redisData.map(deleteItem => Number(deleteItem));
-        console.log('你長得怎樣？', deleteIds);
         await ctx.model.Message.destroy({ where: { id: deleteIds } });
       }
     }
