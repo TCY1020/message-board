@@ -10,6 +10,7 @@ module.exports = app => {
       const messageCount = await ctx.model.Message.count();
       await app.redis.setnx('messageCount', messageCount);
       await app.redis.expire('messageCount', 60);
+      const totalMessageCount = Number(await app.redis.get('messageCount'));
 
       // 存message ID
       await app.redis.setnx('messageId', 15);
@@ -23,7 +24,7 @@ module.exports = app => {
         });
       }
 
-      const totalMessageCount = Number(await app.redis.get('messageCount'));
+      // 使用 helper 的 Pagination
       const messagePagination = new ctx.helper.Pagination(page, limit, totalMessageCount);
       const pagination = messagePagination.getPagination();
 
@@ -35,26 +36,24 @@ module.exports = app => {
       }
 
       // 檢查同分秒問題
+      let messagesFromRedis;
       await app.redis.watch(`data_page${page}`);
       multi.lrange(`data_page${page}`, 0, -1);
       const redisData = await multi.exec();
       if (redisData === null) {
         await ctx.helper.pullSqlToRedis(page, limit, messagePagination.getOffset(), app, ctx.model.Message, ctx.model.User);
         const redisData = app.redis.lrange(`data_page${page}`, 0, -1);
-        const messagesFromRedis = redisData.map((message, index) => ({
+        messagesFromRedis = redisData.map((message, index) => ({
           index,
           message: JSON.parse(message),
         }));
-
-        return [ messagesFromRedis, pagination, page ];
+      } else {
+        console.log('redis有東西');
+        messagesFromRedis = redisData[0][1].map((message, index) => ({
+          index,
+          message: JSON.parse(message),
+        }));
       }
-
-      console.log('redis有東西');
-      const messagesFromRedis = redisData[0][1].map((message, index) => ({
-        index,
-        message: JSON.parse(message),
-      }));
-      await app.redis.unwatch();
 
       return [ messagesFromRedis, pagination, page ];
     }
@@ -64,9 +63,11 @@ module.exports = app => {
       const { comment } = ctx.request.body;
       const { user } = ctx.session;
       const multi = app.redis.multi();
+
+      // 整理要寫入的資料格式
       const userFromRedis = await app.redis.lrange('user', user - 1, user - 1);
       const messageId = await app.redis.incr('messageId');
-      const userObject = JSON.parse(userFromRedis);
+      const userData = JSON.parse(userFromRedis);
       const message = {
         createdAt: new Date().toISOString(),
         data: {
@@ -74,16 +75,18 @@ module.exports = app => {
           userId: user,
           comment,
           User: {
-            name: userObject.name,
+            name: userData.name,
           },
         },
       };
+
       const dataOnRedis = await app.redis.exists('data_page1');
       if (dataOnRedis) {
         await app.redis.watch('data_page1');
         multi.lpush('data_page1', JSON.stringify(message.data));
         await multi.exec();
       }
+
       await app.redis.rpush('update', JSON.stringify(message));
     }
 
@@ -94,19 +97,23 @@ module.exports = app => {
       const page = ctx.query.page || 1;
       const limit = 10;
       const messagePagination = new ctx.helper.Pagination(page, limit);
+
+      let messageFromRedis;
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, Number(id), Number(id));
         const redisData = await multi.exec();
-        const messageFromRedis = { index: id, message: JSON.parse(redisData[0][1]) };
-        return [ messageFromRedis, page ];
+        messageFromRedis = { index: id, message: JSON.parse(redisData[0][1]) };
+      } else {
+        await ctx.helper.pullSqlToRedis(page, limit, messagePagination.getOffset(), app, ctx.model.Message, ctx.model.User);
+        const redisData = await app.redis.lrange(`data_page${page}`, Number(id), Number(id));
+        messageFromRedis = { index: id, message: JSON.parse(redisData) };
       }
-      await ctx.helper.pullSqlToRedis(page, limit, messagePagination.getOffset(), app, ctx.model.Message, ctx.model.User);
-      const redisData = await app.redis.lrange(`data_page${page}`, Number(id), Number(id));
-      const messageFromRedis = { index: id, message: JSON.parse(redisData) };
+
       return [ messageFromRedis, page ];
     }
+
     async putMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
