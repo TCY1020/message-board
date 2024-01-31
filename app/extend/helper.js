@@ -1,11 +1,22 @@
-const getPagination = (page = 1, limit = 10, total) => {
-  const totalPage = Math.ceil(total / limit);
-  const pages = Array.from({ length: totalPage }, (_, index) => index + 1);
-  const start = (page - 1) * limit;
-  const end = start + limit - 1;
-  return { totalPage, pages, start, end };
-};
-const getOffset = (limit = 10, page = 1) => (page - 1) * limit;
+
+class Pagination {
+  constructor(page, limit, total = 0) {
+    this.page = page;
+    this.limit = limit;
+    this.total = total;
+  }
+  getOffset() {
+    const offset = (this.page - 1) * this.limit;
+    return offset;
+  }
+  getPagination() {
+    const totalPage = Math.ceil(this.total / this.limit);
+    const pages = Array.from({ length: totalPage }, (_, index) => index + 1);
+    const start = (this.page - 1) * this.limit;
+    const end = start + this.limit - 1;
+    return { totalPage, pages, start, end };
+  }
+}
 
 const pullSqlToRedis = async (page, limit, offset, app, Message, User) => {
   const messages = await Message.findAll({
@@ -31,7 +42,6 @@ const pullSqlToRedis = async (page, limit, offset, app, Message, User) => {
 };
 
 module.exports = {
-  getPagination,
-  getOffset,
+  Pagination,
   pullSqlToRedis,
 };
