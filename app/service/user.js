@@ -94,6 +94,7 @@ module.exports = app => {
       const { ctx } = this;
       const { id } = ctx.params;
       const multi = app.redis.multi();
+      const idNumberType = Number(id);
       const page = ctx.query.page || 1;
       const limit = 10;
       const messagePagination = new ctx.helper.Pagination(page, limit);
@@ -102,12 +103,12 @@ module.exports = app => {
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
-        multi.lrange(`data_page${page}`, Number(id), Number(id));
+        multi.lrange(`data_page${page}`, idNumberType, idNumberType);
         const redisData = await multi.exec();
         messageFromRedis = { index: id, message: JSON.parse(redisData[0][1]) };
       } else {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
-        const redisData = await app.redis.lrange(`data_page${page}`, Number(id), Number(id));
+        const redisData = await app.redis.lrange(`data_page${page}`, idNumberType, idNumberType);
         messageFromRedis = { index: id, message: JSON.parse(redisData) };
       }
 
@@ -119,26 +120,27 @@ module.exports = app => {
       const { id } = ctx.params;
       const { comment, messageId, page } = ctx.request.body;
       const editData = { messageId, comment };
+      const idNumberType = Number(id);
       const multi = app.redis.multi();
 
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
-        multi.lrange(`data_page${page}`, Number(id), Number(id));
+        multi.lrange(`data_page${page}`, idNumberType, idNumberType);
         const redisData = await multi.exec();
         const messageFromRedis = JSON.parse(redisData[0][1]);
         messageFromRedis.comment = comment;
-        await app.redis.lset(`data_page${page}`, Number(id), JSON.stringify(messageFromRedis));
+        await app.redis.lset(`data_page${page}`, idNumberType, JSON.stringify(messageFromRedis));
       }
 
       const dataLength = await app.redis.llen('update');
       let check;
       // 如果Ｒ未上傳DB，update一起改
-      if (dataLength > 0 && dataLength >= Number(id) + 1) {
-        const redisData = await app.redis.lrange('update', Number(id), Number(id));
+      if (dataLength > 0 && dataLength >= idNumberType + 1) {
+        const redisData = await app.redis.lrange('update', idNumberType, idNumberType);
         const updateData = JSON.parse(redisData);
         updateData.comment = comment;
-        check = await app.redis.lset('update', Number(id), JSON.stringify(updateData));
+        check = await app.redis.lset('update', idNumberType, JSON.stringify(updateData));
       }
       if (check !== 'OK') {
         await app.redis.rpush('edit', JSON.stringify(editData));
@@ -148,13 +150,14 @@ module.exports = app => {
       const { ctx } = this;
       const { id } = ctx.params;
       const { page, messageId } = ctx.request.body;
+      const idNumberType = Number(id);
       const multi = app.redis.multi();
 
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       let redisData;
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
-        multi.lrange(`data_page${page}`, Number(id), Number(id));
+        multi.lrange(`data_page${page}`, idNumberType, idNumberType);
         redisData = await multi.exec();
         await app.redis.lrem(`data_page${page}`, 0, redisData[0][1]);
       }
@@ -162,7 +165,7 @@ module.exports = app => {
       const dataLength = await app.redis.llen('update');
       let check;
       // 如果Ｒ未上傳DB，update一起刪
-      if (dataLength > 0 && dataLength >= Number(id) + 1) {
+      if (dataLength > 0 && dataLength >= idNumberType + 1) {
         check = await app.redis.lrem('update', 0, redisData);
         await app.redis.decr('messageId');
       }
