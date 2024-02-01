@@ -39,20 +39,16 @@ module.exports = app => {
       let messagesFromRedis;
       await app.redis.watch(`data_page${page}`);
       multi.lrange(`data_page${page}`, 0, -1);
-      const redisData = await multi.exec();
-      if (redisData === null) {
+      const messageOfRedis = await multi.exec();
+      if (messageOfRedis === null) {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
-        const redisData = app.redis.lrange(`data_page${page}`, 0, -1);
-        messagesFromRedis = redisData.map((message, index) => ({
-          index,
-          message: JSON.parse(message),
-        }));
+        const messageOfRedis = app.redis.lrange(`data_page${page}`, 0, -1);
+        const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis);
+        messagesFromRedis = messageFormatter.getMessages();
       } else {
         console.log('redis有東西');
-        messagesFromRedis = redisData[0][1].map((message, index) => ({
-          index,
-          message: JSON.parse(message),
-        }));
+        const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis[0][1]);
+        messagesFromRedis = messageFormatter.getMessages();
       }
 
       return [ messagesFromRedis, pagination, page ];
@@ -61,21 +57,21 @@ module.exports = app => {
     async postMessage() {
       const { ctx } = this;
       const { comment } = ctx.request.body;
-      const { user } = ctx.session;
+      const { userId } = ctx.session;
       const multi = app.redis.multi();
 
       // 整理要寫入的資料格式
-      const userFromRedis = await app.redis.lrange('user', user - 1, user - 1);
+      const userFromRedis = await app.redis.lrange('user', userId - 1, userId - 1);
       const messageId = await app.redis.incr('messageId');
-      const userData = JSON.parse(userFromRedis);
+      const user = JSON.parse(userFromRedis);
       const message = {
         createdAt: new Date().toISOString(),
         data: {
           id: messageId,
-          userId: user,
+          userId,
           comment,
-          User: {
-            name: userData.name,
+          user: {
+            name: user.name,
           },
         },
       };
@@ -104,12 +100,14 @@ module.exports = app => {
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, idNumberType, idNumberType);
-        const redisData = await multi.exec();
-        messageFromRedis = { index: id, message: JSON.parse(redisData[0][1]) };
+        const messageOfRedis = await multi.exec();
+        const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis[0][1]);
+        messageFromRedis = messageFormatter.getMessage(id);
       } else {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
-        const redisData = await app.redis.lrange(`data_page${page}`, idNumberType, idNumberType);
-        messageFromRedis = { index: id, message: JSON.parse(redisData) };
+        const messageOfRedis = await app.redis.lrange(`data_page${page}`, idNumberType, idNumberType);
+        const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis);
+        messageFromRedis = messageFormatter.getMessage(id);
       }
 
       return [ messageFromRedis, page ];
@@ -119,7 +117,7 @@ module.exports = app => {
       const { ctx } = this;
       const { id } = ctx.params;
       const { comment, messageId, page } = ctx.request.body;
-      const editData = { messageId, comment };
+      const messageEdit = { messageId, comment };
       const idNumberType = Number(id);
       const multi = app.redis.multi();
 
@@ -127,8 +125,8 @@ module.exports = app => {
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, idNumberType, idNumberType);
-        const redisData = await multi.exec();
-        const messageFromRedis = JSON.parse(redisData[0][1]);
+        const messageOfRedis = await multi.exec();
+        const messageFromRedis = JSON.parse(messageOfRedis[0][1]);
         messageFromRedis.comment = comment;
         await app.redis.lset(`data_page${page}`, idNumberType, JSON.stringify(messageFromRedis));
       }
@@ -137,15 +135,16 @@ module.exports = app => {
       let check;
       // 如果Ｒ未上傳DB，update一起改
       if (dataLength > 0 && dataLength >= idNumberType + 1) {
-        const redisData = await app.redis.lrange('update', idNumberType, idNumberType);
-        const updateData = JSON.parse(redisData);
-        updateData.comment = comment;
-        check = await app.redis.lset('update', idNumberType, JSON.stringify(updateData));
+        const messageOfRedis = await app.redis.lrange('update', idNumberType, idNumberType);
+        const messageUpdate = JSON.parse(messageOfRedis);
+        messageUpdate.comment = comment;
+        check = await app.redis.lset('update', idNumberType, JSON.stringify(messageUpdate));
       }
       if (check !== 'OK') {
-        await app.redis.rpush('edit', JSON.stringify(editData));
+        await app.redis.rpush('edit', JSON.stringify(messageEdit));
       }
     }
+
     async deleteMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
@@ -154,19 +153,19 @@ module.exports = app => {
       const multi = app.redis.multi();
 
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
-      let redisData;
+      let messageOfRedis;
       if (dataOnRedis) {
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, idNumberType, idNumberType);
-        redisData = await multi.exec();
-        await app.redis.lrem(`data_page${page}`, 0, redisData[0][1]);
+        messageOfRedis = await multi.exec();
+        await app.redis.lrem(`data_page${page}`, 0, messageOfRedis[0][1]);
       }
 
       const dataLength = await app.redis.llen('update');
       let check;
       // 如果Ｒ未上傳DB，update一起刪
       if (dataLength > 0 && dataLength >= idNumberType + 1) {
-        check = await app.redis.lrem('update', 0, redisData);
+        check = await app.redis.lrem('update', 0, messageOfRedis);
         await app.redis.decr('messageId');
       }
       if (check !== 1) {

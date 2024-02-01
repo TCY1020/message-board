@@ -16,7 +16,7 @@ module.exports = app => {
         id: message.id,
         userId: message.userId,
         comment: message.comment,
-        User: {
+        user: {
           name: message.User.name,
         },
       }));
