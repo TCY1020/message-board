@@ -46,7 +46,6 @@ module.exports = app => {
         const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis);
         messagesFromRedis = messageFormatter.getMessages();
       } else {
-        console.log('redis有東西');
         const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis[0][1]);
         messagesFromRedis = messageFormatter.getMessages();
       }

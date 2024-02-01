@@ -22,7 +22,6 @@ module.exports = app => {
       }));
       pruneMessages.forEach(async message => { await app.redis.rpush(`data_page${page}`, JSON.stringify(message)); });
       await app.redis.expire(`data_page${page}`, 90);
-      console.log('往DB查');
     }
   };
 };
