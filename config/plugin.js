@@ -12,10 +12,6 @@ module.exports = {
     enable: true,
     package: 'egg-sequelize',
   },
-  passport: {
-    enable: true,
-    package: 'egg-passport',
-  },
   redis: {
     enable: true,
     package: 'egg-redis',
