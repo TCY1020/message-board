@@ -1,5 +1,5 @@
 module.exports = app => {
-  return class UserService extends app.Service {
+  return class BoardService extends app.Service {
     async getMessages() {
       const { ctx } = this;
       const page = ctx.query.page || 1;
