@@ -1,9 +1,9 @@
-const { Pagination } = require('./app/helpers/pagination');
-const { MessageFormatter } = require('./app/helpers/messageFormatter');
+const { Pagination } = require('./app/service/utils/pagination');
+const { MessageFormatter } = require('./app/service/utils/messageFormatter');
 
 module.exports = app => {
-  app.context.helpers = {
-    Pagination,
+  app.context.utils = {
     MessageFormatter,
+    Pagination,
   };
 };

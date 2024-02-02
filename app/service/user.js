@@ -24,7 +24,7 @@ module.exports = app => {
       }
 
       // 使用 helper 的 Pagination
-      const messagePagination = new ctx.helpers.Pagination(page, limit, totalMessageCount);
+      const messagePagination = new ctx.utils.Pagination(page, limit, totalMessageCount);
       const pagination = messagePagination.getPagination();
 
 
@@ -43,13 +43,13 @@ module.exports = app => {
       if (messageOfRedis === null) {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
         const messageOfRedis = app.redis.lrange(`data_page${page}`, 0, -1);
-        messageFormatter = new ctx.helpers.MessageFormatter(messageOfRedis);
+        messageFormatter = new ctx.utils.MessageFormatter(messageOfRedis);
       } else {
-        messageFormatter = new ctx.helpers.MessageFormatter(messageOfRedis[0][1]);
+        messageFormatter = new ctx.utils.MessageFormatter(messageOfRedis[0][1]);
       }
       const messagesFromRedis = messageFormatter.getMessages();
 
-      return [ messagesFromRedis, pagination, page ];
+      return [messagesFromRedis, pagination, page];
     }
 
     async postMessage() {
@@ -87,28 +87,28 @@ module.exports = app => {
     async editMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
-      const idNumberType = Number(id);
+      const listIndex = Number(id);
       const page = ctx.query.page || 1;
       const limit = 10;
-      const messagePagination = new ctx.helpers.Pagination(page, limit);
+      const messagePagination = new ctx.utils.Pagination(page, limit);
 
       let messageFromRedis;
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (dataOnRedis) {
         const multi = app.redis.multi();
         await app.redis.watch(`data_page${page}`);
-        multi.lrange(`data_page${page}`, idNumberType, idNumberType);
+        multi.lrange(`data_page${page}`, listIndex, listIndex);
         const messageOfRedis = await multi.exec();
-        const messageFormatter = new ctx.helpers.MessageFormatter(messageOfRedis[0][1]);
+        const messageFormatter = new ctx.utils.MessageFormatter(messageOfRedis[0][1]);
         messageFromRedis = messageFormatter.getMessage(id);
       } else {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
-        const messageOfRedis = await app.redis.lrange(`data_page${page}`, idNumberType, idNumberType);
-        const messageFormatter = new ctx.helpers.MessageFormatter(messageOfRedis);
+        const messageOfRedis = await app.redis.lrange(`data_page${page}`, listIndex, listIndex);
+        const messageFormatter = new ctx.utils.MessageFormatter(messageOfRedis);
         messageFromRedis = messageFormatter.getMessage(id);
       }
 
-      return [ messageFromRedis, page ];
+      return [messageFromRedis, page];
     }
 
     async putMessage() {
@@ -116,27 +116,27 @@ module.exports = app => {
       const { id } = ctx.params;
       const { comment, messageId, page } = ctx.request.body;
       const messageEdit = { messageId, comment };
-      const idNumberType = Number(id);
+      const listIndex = Number(id);
 
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (dataOnRedis) {
         const multi = app.redis.multi();
         await app.redis.watch(`data_page${page}`);
-        multi.lrange(`data_page${page}`, idNumberType, idNumberType);
+        multi.lrange(`data_page${page}`, listIndex, listIndex);
         const messageOfRedis = await multi.exec();
         const messageFromRedis = JSON.parse(messageOfRedis[0][1]);
         messageFromRedis.comment = comment;
-        await app.redis.lset(`data_page${page}`, idNumberType, JSON.stringify(messageFromRedis));
+        await app.redis.lset(`data_page${page}`, listIndex, JSON.stringify(messageFromRedis));
       }
 
       const dataLength = await app.redis.llen('update');
       let check;
       // 如果Ｒ未上傳DB，update一起改
-      if (dataLength > 0 && dataLength >= idNumberType + 1) {
-        const messageOfRedis = await app.redis.lrange('update', idNumberType, idNumberType);
+      if (dataLength > 0 && dataLength >= listIndex + 1) {
+        const messageOfRedis = await app.redis.lrange('update', listIndex, listIndex);
         const messageUpdate = JSON.parse(messageOfRedis);
         messageUpdate.comment = comment;
-        check = await app.redis.lset('update', idNumberType, JSON.stringify(messageUpdate));
+        check = await app.redis.lset('update', listIndex, JSON.stringify(messageUpdate));
       }
       if (check !== 'OK') {
         await app.redis.rpush('edit', JSON.stringify(messageEdit));
@@ -147,14 +147,14 @@ module.exports = app => {
       const { ctx } = this;
       const { id } = ctx.params;
       const { page, messageId } = ctx.request.body;
-      const idNumberType = Number(id);
+      const listIndex = Number(id);
 
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       let messageOfRedis;
       if (dataOnRedis) {
         const multi = app.redis.multi();
         await app.redis.watch(`data_page${page}`);
-        multi.lrange(`data_page${page}`, idNumberType, idNumberType);
+        multi.lrange(`data_page${page}`, listIndex, listIndex);
         messageOfRedis = await multi.exec();
         await app.redis.lrem(`data_page${page}`, 0, messageOfRedis[0][1]);
       }
@@ -162,7 +162,7 @@ module.exports = app => {
       const dataLength = await app.redis.llen('update');
       let check;
       // 如果Ｒ未上傳DB，update一起刪
-      if (dataLength > 0 && dataLength >= idNumberType + 1) {
+      if (dataLength > 0 && dataLength >= listIndex + 1) {
         check = await app.redis.lrem('update', 0, messageOfRedis);
         await app.redis.decr('messageId');
       }
