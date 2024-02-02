@@ -39,17 +39,17 @@ module.exports = app => {
       const multi = app.redis.multi();
       await app.redis.watch(`data_page${page}`);
       multi.lrange(`data_page${page}`, 0, -1);
-      const messageOfRedis = await multi.exec();
-      if (messageOfRedis === null) {
+      const watchMessage = await multi.exec();
+      if (watchMessage === null) {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
-        const messageOfRedis = app.redis.lrange(`data_page${page}`, 0, -1);
-        messageFormatter = new ctx.utils.MessageFormatter(messageOfRedis);
+        const queryMessageAgain = app.redis.lrange(`data_page${page}`, 0, -1);
+        messageFormatter = new ctx.utils.MessageFormatter(queryMessageAgain);
       } else {
-        messageFormatter = new ctx.utils.MessageFormatter(messageOfRedis[0][1]);
+        messageFormatter = new ctx.utils.MessageFormatter(watchMessage[0][1]);
       }
       const messagesFromRedis = messageFormatter.getMessages();
 
-      return [messagesFromRedis, pagination, page];
+      return [ messagesFromRedis, pagination, page ];
     }
 
     async postMessage() {
@@ -98,17 +98,17 @@ module.exports = app => {
         const multi = app.redis.multi();
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, listIndex, listIndex);
-        const messageOfRedis = await multi.exec();
-        const messageFormatter = new ctx.utils.MessageFormatter(messageOfRedis[0][1]);
+        const watchMessage = await multi.exec();
+        const messageFormatter = new ctx.utils.MessageFormatter(watchMessage[0][1]);
         messageFromRedis = messageFormatter.getMessage(id);
       } else {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
-        const messageOfRedis = await app.redis.lrange(`data_page${page}`, listIndex, listIndex);
-        const messageFormatter = new ctx.utils.MessageFormatter(messageOfRedis);
+        const queryMessageAgain = await app.redis.lrange(`data_page${page}`, listIndex, listIndex);
+        const messageFormatter = new ctx.utils.MessageFormatter(queryMessageAgain);
         messageFromRedis = messageFormatter.getMessage(id);
       }
 
-      return [messageFromRedis, page];
+      return [ messageFromRedis, page ];
     }
 
     async putMessage() {
@@ -123,8 +123,8 @@ module.exports = app => {
         const multi = app.redis.multi();
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, listIndex, listIndex);
-        const messageOfRedis = await multi.exec();
-        const messageFromRedis = JSON.parse(messageOfRedis[0][1]);
+        const watchMessage = await multi.exec();
+        const messageFromRedis = JSON.parse(watchMessage[0][1]);
         messageFromRedis.comment = comment;
         await app.redis.lset(`data_page${page}`, listIndex, JSON.stringify(messageFromRedis));
       }
@@ -133,8 +133,8 @@ module.exports = app => {
       let check;
       // 如果Ｒ未上傳DB，update一起改
       if (dataLength > 0 && dataLength >= listIndex + 1) {
-        const messageOfRedis = await app.redis.lrange('update', listIndex, listIndex);
-        const messageUpdate = JSON.parse(messageOfRedis);
+        const redisUpdateMessage = await app.redis.lrange('update', listIndex, listIndex);
+        const messageUpdate = JSON.parse(redisUpdateMessage);
         messageUpdate.comment = comment;
         check = await app.redis.lset('update', listIndex, JSON.stringify(messageUpdate));
       }
@@ -150,20 +150,20 @@ module.exports = app => {
       const listIndex = Number(id);
 
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
-      let messageOfRedis;
+      let watchMessage;
       if (dataOnRedis) {
         const multi = app.redis.multi();
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, listIndex, listIndex);
-        messageOfRedis = await multi.exec();
-        await app.redis.lrem(`data_page${page}`, 0, messageOfRedis[0][1]);
+        watchMessage = await multi.exec();
+        await app.redis.lrem(`data_page${page}`, 0, watchMessage[0][1]);
       }
 
       const dataLength = await app.redis.llen('update');
       let check;
       // 如果Ｒ未上傳DB，update一起刪
       if (dataLength > 0 && dataLength >= listIndex + 1) {
-        check = await app.redis.lrem('update', 0, messageOfRedis);
+        check = await app.redis.lrem('update', 0, watchMessage);
         await app.redis.decr('messageId');
       }
       if (check !== 1) {
