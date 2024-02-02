@@ -59,9 +59,6 @@ module.exports = appInfo => {
     password: 'password', // 数据库密码
     timezone: '+08:00', // 设置时区
     define: {
-      timestamps: true, // 自动写入时间戳 created_at updated_at
-      paranoid: true, // 字段生成软删除时间戳 deleted_at
-      underscored: true, // 所有驼峰命名格式化
     },
   };
   // redis
