@@ -2,7 +2,6 @@ module.exports = app => {
   return class UserService extends app.Service {
     async getMessages() {
       const { ctx } = this;
-      const multi = app.redis.multi();
       const page = ctx.query.page || 1;
       const limit = 10;
 
@@ -36,19 +35,19 @@ module.exports = app => {
       }
 
       // 檢查同分秒問題
-      let messagesFromRedis;
+      let messageFormatter;
+      const multi = app.redis.multi();
       await app.redis.watch(`data_page${page}`);
       multi.lrange(`data_page${page}`, 0, -1);
       const messageOfRedis = await multi.exec();
       if (messageOfRedis === null) {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
         const messageOfRedis = app.redis.lrange(`data_page${page}`, 0, -1);
-        const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis);
-        messagesFromRedis = messageFormatter.getMessages();
+        messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis);
       } else {
-        const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis[0][1]);
-        messagesFromRedis = messageFormatter.getMessages();
+        messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis[0][1]);
       }
+      const messagesFromRedis = messageFormatter.getMessages();
 
       return [ messagesFromRedis, pagination, page ];
     }
@@ -57,7 +56,6 @@ module.exports = app => {
       const { ctx } = this;
       const { comment } = ctx.request.body;
       const { userId } = ctx.session;
-      const multi = app.redis.multi();
 
       // 整理要寫入的資料格式
       const userFromRedis = await app.redis.lrange('user', userId - 1, userId - 1);
@@ -77,6 +75,7 @@ module.exports = app => {
 
       const dataOnRedis = await app.redis.exists('data_page1');
       if (dataOnRedis) {
+        const multi = app.redis.multi();
         await app.redis.watch('data_page1');
         multi.lpush('data_page1', JSON.stringify(message.data));
         await multi.exec();
@@ -88,7 +87,6 @@ module.exports = app => {
     async editMessage() {
       const { ctx } = this;
       const { id } = ctx.params;
-      const multi = app.redis.multi();
       const idNumberType = Number(id);
       const page = ctx.query.page || 1;
       const limit = 10;
@@ -97,6 +95,7 @@ module.exports = app => {
       let messageFromRedis;
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (dataOnRedis) {
+        const multi = app.redis.multi();
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, idNumberType, idNumberType);
         const messageOfRedis = await multi.exec();
@@ -118,10 +117,10 @@ module.exports = app => {
       const { comment, messageId, page } = ctx.request.body;
       const messageEdit = { messageId, comment };
       const idNumberType = Number(id);
-      const multi = app.redis.multi();
 
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       if (dataOnRedis) {
+        const multi = app.redis.multi();
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, idNumberType, idNumberType);
         const messageOfRedis = await multi.exec();
@@ -149,11 +148,11 @@ module.exports = app => {
       const { id } = ctx.params;
       const { page, messageId } = ctx.request.body;
       const idNumberType = Number(id);
-      const multi = app.redis.multi();
 
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
       let messageOfRedis;
       if (dataOnRedis) {
+        const multi = app.redis.multi();
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, idNumberType, idNumberType);
         messageOfRedis = await multi.exec();
