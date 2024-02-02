@@ -1,4 +1,3 @@
-
 class Pagination {
   constructor(page, limit, total = 0) {
     this.page = page;
@@ -19,25 +18,6 @@ class Pagination {
     return { totalPage, pages, start, end };
   }
 }
-
-class MessageFormatter {
-  constructor(messages) {
-    this.messages = messages;
-  }
-  getMessage(id) {
-    return { index: id, message: JSON.parse(this.messages) };
-  }
-  getMessages() {
-    const allMessages = this.messages.map((message, index) => ({
-      index,
-      message: JSON.parse(message),
-    }));
-    return allMessages;
-  }
-}
-
-
 module.exports = {
   Pagination,
-  MessageFormatter,
 };

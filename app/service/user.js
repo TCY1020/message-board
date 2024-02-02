@@ -24,7 +24,7 @@ module.exports = app => {
       }
 
       // 使用 helper 的 Pagination
-      const messagePagination = new ctx.helper.Pagination(page, limit, totalMessageCount);
+      const messagePagination = new ctx.helpers.Pagination(page, limit, totalMessageCount);
       const pagination = messagePagination.getPagination();
 
 
@@ -43,9 +43,9 @@ module.exports = app => {
       if (messageOfRedis === null) {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
         const messageOfRedis = app.redis.lrange(`data_page${page}`, 0, -1);
-        messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis);
+        messageFormatter = new ctx.helpers.MessageFormatter(messageOfRedis);
       } else {
-        messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis[0][1]);
+        messageFormatter = new ctx.helpers.MessageFormatter(messageOfRedis[0][1]);
       }
       const messagesFromRedis = messageFormatter.getMessages();
 
@@ -90,7 +90,7 @@ module.exports = app => {
       const idNumberType = Number(id);
       const page = ctx.query.page || 1;
       const limit = 10;
-      const messagePagination = new ctx.helper.Pagination(page, limit);
+      const messagePagination = new ctx.helpers.Pagination(page, limit);
 
       let messageFromRedis;
       const dataOnRedis = await app.redis.exists(`data_page${page}`);
@@ -99,12 +99,12 @@ module.exports = app => {
         await app.redis.watch(`data_page${page}`);
         multi.lrange(`data_page${page}`, idNumberType, idNumberType);
         const messageOfRedis = await multi.exec();
-        const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis[0][1]);
+        const messageFormatter = new ctx.helpers.MessageFormatter(messageOfRedis[0][1]);
         messageFromRedis = messageFormatter.getMessage(id);
       } else {
         await ctx.service.utils.common.pullSqlToRedis(page, limit, messagePagination.getOffset());
         const messageOfRedis = await app.redis.lrange(`data_page${page}`, idNumberType, idNumberType);
-        const messageFormatter = new ctx.helper.MessageFormatter(messageOfRedis);
+        const messageFormatter = new ctx.helpers.MessageFormatter(messageOfRedis);
         messageFromRedis = messageFormatter.getMessage(id);
       }
 
